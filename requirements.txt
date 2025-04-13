@@ -5,3 +5,4 @@ torchaudio
 streamlit
 opencv-python-headless
 streamlit-webrtc
+os
