@@ -3,7 +3,7 @@ torch
 torchvision
 torchaudio
 streamlit
-opencv-python-headless
+opencv-python==4.5.3.56 
 streamlit-webrtc
 Pillow 
 numpy 
