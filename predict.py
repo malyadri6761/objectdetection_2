@@ -43,12 +43,12 @@ if app_mode == "Image":
 
     if uploaded_image is not None:
         image = Image.open(uploaded_image).convert("RGB")
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.image(image, caption="Uploaded Image", use_container_width=True)
 
         if st.button("🔍 Detect Objects", key="detect_img_btn"):
             results = model(np.array(image))
             annotated_image = draw_results(np.array(image), results)
-            st.image(annotated_image, caption="Detected Image", channels="BGR", use_column_width=True)
+            st.image(annotated_image, caption="Detected Image", channels="BGR", use_container_width=True)
 
 # 2️⃣ Video Detection
 elif app_mode == "Video":
@@ -69,7 +69,7 @@ elif app_mode == "Video":
             results = model(frame)
             annotated_frame = draw_results(frame, results)
             annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
-            stframe.image(annotated_frame, channels="RGB", use_column_width=True)
+            stframe.image(annotated_frame, channels="RGB", use_container_width=True)
 
         cap.release()
         st.success("✅ Video processing completed.")
