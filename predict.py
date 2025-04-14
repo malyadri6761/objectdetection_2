@@ -95,9 +95,9 @@ from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode
 import av
 
 # Load YOLOv8 model
-model = YOLO("yolov8n-oiv7.pt")  # Change to your custom model if needed
+model = YOLO("yolov8m-oiv7.pt")  # Change to your custom model if needed
 
-# Helper to draw results
+# Helper to draw detection results on image/video frames
 def draw_results(frame, results):
     for r in results:
         if r.boxes is not None:
@@ -111,7 +111,7 @@ def draw_results(frame, results):
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     return frame
 
-# WebRTC VideoProcessor for webcam detection
+# WebRTC VideoProcessor class for real-time webcam detection
 class VideoProcessor(VideoProcessorBase):
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
@@ -119,23 +119,25 @@ class VideoProcessor(VideoProcessorBase):
         annotated = draw_results(img, results)
         return av.VideoFrame.from_ndarray(annotated, format="bgr24")
 
-# Streamlit App
+# Streamlit App UI
 st.title("🧠 Object Detection with YOLOv8")
 app_mode = st.sidebar.selectbox("Choose Mode", ["Image", "Video", "Webcam"])
 
-# 1️⃣ Image Detection
+# 1️⃣ Image Detection (without cv2 for image loading)
 if app_mode == "Image":
     st.header("🖼️ Upload Image for Object Detection")
     uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
     if uploaded_image is not None:
         image = Image.open(uploaded_image).convert("RGB")
+        img_array = np.array(image)
         st.image(image, caption="Uploaded Image", use_container_width=True)
 
         if st.button("🔍 Detect Objects", key="detect_img_btn"):
-            results = model(np.array(image))
-            annotated_image = draw_results(np.array(image), results)
-            st.image(annotated_image, caption="Detected Image", channels="BGR", use_container_width=True)
+            results = model(img_array)
+            annotated_img = draw_results(img_array.copy(), results)
+            annotated_img = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
+            st.image(annotated_img, caption="Detected Image", channels="RGB", use_container_width=True)
 
 # 2️⃣ Video Detection
 elif app_mode == "Video":
