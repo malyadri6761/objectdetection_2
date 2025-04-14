@@ -4,6 +4,8 @@ torchvision
 torchaudio
 streamlit
 opencv-python
+opencv-python-headless
+matplotlib
 streamlit-webrtc
 Pillow 
 numpy 
