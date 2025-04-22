@@ -232,7 +232,8 @@ class VideoProcessor(VideoProcessorBase):
         img = frame.to_ndarray(format="bgr24")
         results = model(img)
         annotated = draw_results(img, results)
-        return av.VideoFrame.from_ndarray(annotated, format="bgr24")
+        annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)  # Convert to RGB before returning
+        return av.VideoFrame.from_ndarray(annotated_rgb, format="rgb24")
 
 # App Title
 st.title("🧠 YOLOv8 Object Detection App")
@@ -255,8 +256,8 @@ if app_mode == "📷 Image":
         if st.button("🔍 Detect Objects"):
             results = model(img_array)
             annotated_img = draw_results(img_array.copy(), results)
-            st.image(cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB),
-                     caption="✅ Detection Result", channels="RGB", use_container_width=True)
+            annotated_img_rgb = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)  # Convert to RGB before displaying
+            st.image(annotated_img_rgb, caption="✅ Detection Result", use_container_width=True)
 
 # Video Mode
 elif app_mode == "🎞️ Video":
@@ -279,8 +280,8 @@ elif app_mode == "🎞️ Video":
                 break
             results = model(frame)
             annotated_frame = draw_results(frame, results)
-            annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
-            stframe.image(annotated_frame, channels="RGB", use_container_width=True)
+            annotated_frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)  # Convert to RGB before displaying
+            stframe.image(annotated_frame_rgb, channels="RGB", use_container_width=True)
 
             current_frame += 1
             progress.progress(min(current_frame / frame_count, 1.0))
@@ -300,4 +301,3 @@ elif app_mode == "🎥 Real-Time Webcam":
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
-
