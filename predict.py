@@ -179,6 +179,8 @@ from PIL import Image
 import cv2
 import tempfile
 import numpy as np
+import requests
+from io import BytesIO
 from ultralytics import YOLO
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode
 import av
@@ -212,7 +214,17 @@ st.markdown("""
 # Load YOLOv8 model
 model = YOLO("yolov8m-oiv7.pt")
 
-# Draw detection results
+
+# WebRTC VideoProcessor
+class VideoProcessor(VideoProcessorBase):
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        img = frame.to_ndarray(format="bgr24")
+        results = model(img)
+        annotated = draw_results(img, results)
+        annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)  # Convert to RGB before returning
+        return av.VideoFrame.from_ndarray(annotated_rgb, format="rgb24")
+
+# Function to draw detection results using OpenCV
 def draw_results(frame, results):
     for r in results:
         if r.boxes is not None:
@@ -226,22 +238,12 @@ def draw_results(frame, results):
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     return frame
 
-# WebRTC VideoProcessor
-class VideoProcessor(VideoProcessorBase):
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        img = frame.to_ndarray(format="bgr24")
-        results = model(img)
-        annotated = draw_results(img, results)
-        annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)  # Convert to RGB before returning
-        return av.VideoFrame.from_ndarray(annotated_rgb, format="rgb24")
-
-# App Title
-st.title("🧠 YOLOv8 Object Detection App")
-st.markdown("Detect objects in 📷 images, 🎞️ videos, or 🎥 real-time camera streams with ease!")
+# Streamlit App
+st.title("🧠 YOLOv8 Object Detection with OpenCV")
+st.markdown("Detect objects in 📷 images using YOLOv8 and OpenCV!")
 
 # Sidebar for mode selection
-st.sidebar.header("🚀 Select Mode")
-app_mode = st.sidebar.radio("Choose Input Type", ["📷 Image", "🎞️ Video", "🎥 Real-Time Webcam"])
+app_mode = st.sidebar.radio("Choose Input Type", ["📷 Image", "🎞️ Video", "🎥 Real-Time Webcam", "🌐 URL"])
 
 # Image Mode
 if app_mode == "📷 Image":
@@ -249,14 +251,23 @@ if app_mode == "📷 Image":
     uploaded_image = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
 
     if uploaded_image:
-        image = Image.open(uploaded_image).convert("RGB")
-        img_array = np.array(image)
-        st.image(image, caption="🖼️ Uploaded Image", use_container_width=True)
+        # Read image with OpenCV
+        file_bytes = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
+        img_array = cv2.imdecode(file_bytes, 1)  # Decode image to OpenCV format (BGR)
+
+        # Display the original image
+        st.image(img_array, caption="🖼️ Uploaded Image", channels="BGR", use_container_width=True)
 
         if st.button("🔍 Detect Objects"):
+            # Run the YOLO object detection model
             results = model(img_array)
+
+            # Annotate the image with bounding boxes and labels using OpenCV
             annotated_img = draw_results(img_array.copy(), results)
-            st.image(annotated_img, caption="✅ Detection Result", use_container_width=True)  # No need to convert
+
+            # Show the annotated image in Streamlit (convert back to RGB for correct display)
+            annotated_img_rgb = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+            st.image(annotated_img_rgb, caption="✅ Detection Result", channels="RGB", use_container_width=True)
 
 # Video Mode
 elif app_mode == "🎞️ Video":
@@ -300,3 +311,35 @@ elif app_mode == "🎥 Real-Time Webcam":
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
+
+elif app_mode == "🌐 URL":
+    st.subheader("🌐 Paste URL for Image/Video")
+
+    # Add a brief explanation of object detection and resources
+    st.markdown("""
+    ## Object Detection Process
+
+    **Object detection** is a computer vision technique that identifies and locates objects in images or videos. The process involves several key steps:
+
+    1. **Preprocessing**: First, the image or video is preprocessed to prepare it for detection. This might involve resizing, normalization, or data augmentation.
+
+    2. **Feature Extraction**: The model (in this case, YOLOv8) extracts features from the image or video to identify patterns associated with various objects.
+
+    3. **Bounding Box Generation**: The model generates bounding boxes around detected objects, which define their location in the image or video.
+
+    4. **Classification**: After detecting the objects, the model classifies them based on pre-trained categories (e.g., people, cars, animals).
+
+    5. **Output**: Finally, the model displays the results by annotating the image or video with bounding boxes and labels for each detected object.
+
+    ### Resources for Learning More
+
+    - [YOLOv8 Paper](https://arxiv.org/abs/2301.09965): Learn more about the YOLO (You Only Look Once) object detection model.
+    - [OpenCV Documentation](https://docs.opencv.org/): Comprehensive documentation for computer vision tasks including object detection.
+    - [Ultralytics YOLOv8 GitHub](https://github.com/ultralytics/yolov8): Official repository for YOLOv8, including installation and usage instructions.
+
+    ## How to Use
+
+    1. Paste the URL of an image or video into the input box below.
+    2. Click on the "🔍 Download and Process URL" button.
+    3. The system will download the file and then run object detection to identify and annotate the objects.
+    """)
