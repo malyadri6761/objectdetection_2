@@ -256,8 +256,7 @@ if app_mode == "📷 Image":
         if st.button("🔍 Detect Objects"):
             results = model(img_array)
             annotated_img = draw_results(img_array.copy(), results)
-            annotated_img_rgb = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)  # Convert to RGB before displaying
-            st.image(annotated_img_rgb, caption="✅ Detection Result", use_container_width=True)
+            st.image(annotated_img, caption="✅ Detection Result", use_container_width=True)  # No need to convert
 
 # Video Mode
 elif app_mode == "🎞️ Video":
